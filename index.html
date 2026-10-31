@@ -1,0 +1,103 @@
+<!doctype html>
+<!-- lang/dir are updated by script.js when the language toggle changes -->
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Esm-o-Famil</title>
+  <meta name="description" content="Esm-o-Famil (اسم فامیل), the Persian word game, in English and Farsi.">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/icon-16.png">
+
+  <!-- Lora: classic serif for English; Vazirmatn: Persian-friendly font for Farsi (both fall back to system fonts) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=Vazirmatn:wght@400;500;700;800&display=swap">
+
+  <link rel="stylesheet" href="/src/styles.css">
+  <!-- type="module" lets Vite bundle it; modules are deferred like the old `defer` -->
+  <script type="module" src="/src/script.js"></script>
+</head>
+<body>
+  <div class="page">
+
+    <!-- ===== Header: title + language toggle ===== -->
+    <!-- dir="ltr": title stays left and the language switch right in both languages -->
+    <header class="topbar" dir="ltr">
+      <h1 class="brand">
+        <img class="brand-icon" src="/images/icon-16.png" alt="" width="36" height="36">
+        <span id="brand" dir="auto">Esm-o-Famil</span>
+      </h1>
+
+      <div class="lang-toggle" role="group" id="lang-group" aria-label="Language">
+        <button type="button" data-lang="en" lang="en" dir="ltr" aria-pressed="true">English</button>
+        <button type="button" data-lang="fa" lang="fa" dir="rtl" aria-pressed="false">فارسی</button>
+      </div>
+    </header>
+
+    <main>
+      <!-- ===== Round prompt: big letter + instruction + optional timer ===== -->
+      <section class="prompt" aria-labelledby="prompt-text">
+        <div class="big-letter" id="letter-tile" aria-hidden="true">B</div>
+
+        <div class="prompt-copy">
+          <p class="round-label" id="round-label">Round 1</p>
+          <h2 class="prompt-text" id="prompt-text">
+            <span id="prompt-letter-label">Letter:</span>
+            <bdi id="prompt-letter" class="prompt-letter">B</bdi>
+            <span aria-hidden="true">—</span>
+            <span id="prompt-instruction">write a word for each category</span>
+          </h2>
+        </div>
+
+        <!-- Countdown, only shown when the timer is enabled -->
+        <div class="timer" id="timer" hidden>
+          <span class="timer-label" id="timer-label">Time left</span>
+          <span class="timer-value" id="timer-value" role="timer">1:00</span>
+          <span class="timer-bar" aria-hidden="true"><span class="timer-fill" id="timer-fill"></span></span>
+        </div>
+      </section>
+
+      <!-- ===== Controls: new round, timer settings, running total ===== -->
+      <div class="controls">
+        <button type="button" class="btn btn-secondary" id="new-round">New round</button>
+
+        <div class="timer-settings">
+          <label class="check">
+            <input type="checkbox" id="timer-enabled">
+            <span id="timer-enabled-label">Timer</span>
+          </label>
+          <label class="seconds">
+            <input type="number" id="timer-seconds" dir="ltr" inputmode="numeric"
+                   min="10" max="600" step="5" value="60" aria-label="Timer length in seconds">
+            <span id="seconds-label" aria-hidden="true">seconds</span>
+          </label>
+        </div>
+
+        <p class="total-pill">
+          <span id="total-label">Total</span>
+          <strong id="total-value">0</strong>
+        </p>
+      </div>
+
+      <!-- ===== Answer form: inputs are generated from CATEGORIES in script.js ===== -->
+      <form class="answers" id="answers-form" novalidate autocomplete="off">
+        <div class="fields" id="fields"></div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary" id="submit-btn">Submit</button>
+        </div>
+      </form>
+
+      <!-- ===== Results (hidden until the round is submitted) ===== -->
+      <section class="results" id="results" tabindex="-1" aria-labelledby="results-title" hidden>
+        <h2 id="results-title">Results</h2>
+        <p class="notice" id="results-notice" hidden></p>
+        <ol class="results-list" id="results-list"></ol>
+        <div class="score-summary">
+          <p><span id="round-score-label">Round score</span> <strong id="round-score">0</strong></p>
+          <p><span id="running-total-label">Running total</span> <strong id="running-total">0</strong></p>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
