@@ -1,72 +1,50 @@
 /* =====================================================================
-   Esm-o-Famil — styles
-   Colors are tokens on :root, swapped for dark mode below.
-   Logical properties (margin-inline, padding-inline, text-align: start)
-   are used throughout so the layout mirrors automatically in RTL.
+   Esm-o-Famil — a page torn from a school notebook (دفتر), lying on a rug
+   Two inks on white ruled paper, nothing else:
+     --ink-blue        all writing: text, headers, labels, inputs, borders,
+                       buttons, the timer
+     --ink-blue-faded  earlier rounds
+     --ink-red         grading only: checks, slashes, circles, scores, the
+                       total, the "graded" stamp, the timer under 10 s
+   These six color tokens are the only colors in the project (plus the rug
+   image and the paper's shadow). There is no dark mode: the paper is
+   always white.
+   Logical properties (inline-start/end) mirror the page in RTL;
+   --dir flips hand-drawn rotations.
    ===================================================================== */
 
-/* Palette — colors of a Persian rug
-     #8e2433  madder red     — primary accent, round letter, scores
-     #23406e  indigo         — valid, focus ring
-     #d9a441  saffron gold   — highlighter under the letter, timer bar
-     #b4532a  rust           — invalid, timer warning
-     #f4ead5  ivory field    — page background (text color in dark mode)
-     #2a1a12  walnut         — text; lighter walnut for ruled lines
-   Dark mode sets the same dyes on a deep indigo ground, lightened where
-   they are used as text so they stay readable. */
-
 :root {
-  color-scheme: light;
+  color-scheme: light only;
 
-  --bg: #f4ead5;
-  --border: #dcc9a3;        /* hairlines */
-  --text: #2a1a12;
-  --muted: #6a5444;
+  /* ---- Colors: the only ones allowed ---- */
+  --paper: #fdfdfb;
+  --rule-line: rgba(70, 120, 200, 0.18);
+  --margin-line: rgba(200, 16, 46, 0.45);
+  --ink-blue: #1f3a93;
+  --ink-blue-faded: rgba(31, 58, 147, 0.6);
+  --ink-red: #c8102e;
 
-  --accent: #8e2433;        /* button/fill backgrounds */
-  --accent-hover: #741c29;
-  --accent-ink: #ffffff;    /* text on --accent */
-  --accent-text: #8e2433;   /* accent used as text/border on the page */
-  --highlight: #d9a441;
-  --mark: #d9a441;          /* highlighter stroke under the round letter */
-  --rule: #8a6a48;          /* ruled lines & input underlines (3:1+ on the page) */
+  /* The paper's only shadow: lying flat on the rug */
+  --paper-shadow: 0 2px 3px rgba(0, 0, 0, 0.3), 0 14px 30px rgba(0, 0, 0, 0.35);
 
-  --focus: #23406e;
-  --valid: #23406e;
-  --invalid: #a5481f;       /* rust, darkened slightly for small text */
-  --invalid-border: #b4532a;
-  --warn: #b4532a;
+  /* Geometry: every table row sits on exactly one ruled line */
+  --line: 2.5rem;
+  --pad: clamp(12px, 3vw, 40px);          /* paper edge → content */
+  --margin-w: 5rem;                       /* left of the red margin line */
+  --col-w: 6.6rem;                        /* 10 columns fit a 1400px window without scrolling */
+  --score-w: 5.5rem;
+  --rug-gap: 40px;                        /* rug visible around the paper */
 
-  --radius: 3px;
+  /* Type */
+  --font-hand: "Kalam", "Aref Ruqaa", "Vazirmatn", cursive;
+  --font-head: "Kalam", "Lalezar", "Vazirmatn", cursive;
+  --font-pen: "Kalam", "Lalezar", cursive;
+  --font-mono: "Courier Prime", "Vazirmatn", ui-monospace, monospace;
 
-  --font-latin: "Lora", Georgia, "Times New Roman", serif;
-  --font-persian: "Vazirmatn", "Vazir", Tahoma, "Segoe UI", "Noto Sans Arabic", sans-serif;
+  --dir: 1;                               /* -1 in RTL: mirrors rotations */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-
-    --bg: #141a2b;          /* deep indigo ground */
-    --border: #2c3550;
-    --text: #f1e6cf;        /* ivory */
-    --muted: #b9ad98;
-
-    --accent: #8e2433;
-    --accent-hover: #a82c3d;
-    --accent-ink: #ffffff;
-    --accent-text: #e0b354;  /* gold; madder is too dark to read here */
-    --highlight: #e0b354;
-    --mark: #8e2433;
-    --rule: #7d7a92;
-
-    --focus: #e0b354;
-    --valid: #8fb0e0;        /* lightened indigo */
-    --invalid: #e8875a;      /* lightened rust */
-    --invalid-border: #e8875a;
-    --warn: #e8875a;
-  }
-}
+html[dir="rtl"] { --dir: -1; }
 
 /* ---------- Base ---------- */
 
@@ -78,408 +56,687 @@
 
 html { -webkit-text-size-adjust: 100%; }
 
+/* The rug: covers the viewport behind the paper, never tiled or stretched */
 body {
   margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font-latin);
-  line-height: 1.55;
+  background: url("../images/background-web.jpg") center / cover no-repeat fixed;
+  color: var(--ink-blue);
+  font-family: var(--font-hand);
+  line-height: 1.4;
   overflow-x: hidden;
 }
-
-/* Farsi mode: Persian font for the whole page (form controls inherit) */
-html[lang="fa"] body { font-family: var(--font-persian); }
-
-/* The two toggle buttons always use the font of their own language */
-[lang="fa"] { font-family: var(--font-persian); }
-[lang="en"] { font-family: var(--font-latin); }
 
 button,
 input { font: inherit; color: inherit; }
 
-h1, h2, p { margin: 0; }
+/* ---------- Browser-default colors, pinned to the inks ---------- */
 
+/* Inputs: transparent, written in blue ink — including disabled (Safari greys
+   these via -webkit-text-fill-color) and placeholders. */
+input {
+  background-color: transparent;
+  color: var(--ink-blue);
+  -webkit-text-fill-color: var(--ink-blue);
+  caret-color: var(--ink-blue);
+}
+input:disabled { opacity: 1; }
+input::placeholder { color: var(--ink-blue); -webkit-text-fill-color: var(--ink-blue); opacity: 1; }
+
+/* Autofill: browsers paint their own pale yellow/blue background with
+   !important; keep the text blue and delay that background indefinitely. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--ink-blue);
+  caret-color: var(--ink-blue);
+  transition: background-color 99999s ease-out 0s;
+}
+input:autofill { background-color: transparent; }
+
+/* Checkbox: an ink-drawn square instead of the browser's grey/accent box */
+input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1.5px solid var(--ink-blue);
+  border-radius: 0;
+  background-color: transparent;
+  cursor: pointer;
+}
+input[type="checkbox"]:checked { background-color: var(--ink-blue); }
+
+/* Number input: no browser-colored spin buttons */
+input[type="number"] { appearance: textfield; -moz-appearance: textfield; }
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* Buttons: no browser grey when disabled */
+button:disabled { color: var(--ink-blue); }
+
+::selection { background-color: var(--rule-line); color: var(--ink-blue); }
+
+/* The sheet's sideways scrollbar, in faded ink */
+.sheet-scroll { scrollbar-color: var(--ink-blue) transparent; }
+
+h1, p { margin: 0; }
+
+/* iOS Safari ignores/breaks background-attachment: fixed, so let it scroll there */
+@supports (-webkit-touch-callout: none) {
+  body { background-attachment: scroll; }
+}
+
+/* Focus for controls: a dashed ballpoint outline, never a glow */
 :focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 3px;
+  outline: 2px dashed var(--ink-blue);
+  outline-offset: 4px;
 }
 
-/* Small-caps labels in English; Persian has no case, so plain bold there */
-.small-caps,
-.round-label,
-.field label,
-.timer-label,
-.result-cat {
-  font-variant: small-caps;
-  letter-spacing: 0.04em;
-}
-html[lang="fa"] :is(.small-caps, .round-label, .field label, .timer-label, .result-cat) {
-  font-variant: normal;
-  letter-spacing: 0;
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
-.page {
-  max-width: 760px;
-  margin-inline: auto;
-  padding: 24px 16px 56px;
+.svg-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+.hatch-line { stroke: var(--ink-blue); stroke-width: 1.3; }
+.hatch-line-red { stroke: var(--ink-red); }
+
+/* ---------- The page ---------- */
+
+.paper {
+  position: relative;
+  max-width: 1440px;
+  min-height: calc(100vh - 2 * var(--rug-gap));
+  margin: var(--rug-gap) auto;
+  padding: 0 var(--pad) 48px;
+  background: var(--paper);
+  box-shadow: var(--paper-shadow);
+}
+/* Keep rug visible at the sides even when the viewport is narrower than max-width */
+@media (max-width: 1520px) {
+  .paper { margin-inline: var(--rug-gap); }
 }
 
-main { display: grid; gap: 28px; }
+/* The red margin line, full height of the page */
+.paper::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: calc(var(--pad) + var(--margin-w) - 2px);
+  width: 2px;
+  background: var(--margin-line);
+  pointer-events: none;
+}
 
-/* ---------- Header: title + language switch, closed by a double rule ---------- */
+/* ---------- Top margin (unruled) ---------- */
 
-.topbar {
+.top-margin {
+  padding-block: 16px 18px;
+  padding-inline-start: calc(var(--margin-w) + 14px);
+}
+
+.masthead {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 12px;
-  padding-block-end: 14px;
-  margin-block-end: 28px;
-  border-block-end: 3px double var(--rule);
+  gap: 8px 16px;
+  margin-block-end: 14px;
 }
 
-.brand {
+.title {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  font-size: 1.6rem;
+  gap: 8px;
+  color: var(--ink-blue);
+  font-family: var(--font-head);
   font-weight: 700;
+  font-size: 1.6rem;
+  line-height: 1.2;
 }
-.brand-icon {
-  flex: none;
-  width: 36px;
-  height: 36px;
-  /* The icon is a 16px rug medallion: scale it as crisp "knots", not a blur */
-  image-rendering: pixelated;
+html[lang="fa"] .title { font-weight: 400; }
+.title-icon {
+  width: 22px;
+  height: 22px;
+  object-fit: cover;
 }
 
-/* "English | فارسی" as plain text links; the active one is underlined */
+/* Language: typed text, the active one underlined in a hand wobble */
 .lang-toggle {
   display: inline-flex;
-  align-items: center;
+  align-items: baseline;
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
 }
 .lang-toggle button {
   border: 0;
   background: none;
-  padding: 4px 10px;
+  padding: 2px 10px;
   cursor: pointer;
-  color: var(--muted);
-  text-decoration: none;
-  text-underline-offset: 6px;
+  color: var(--ink-blue);
+  text-underline-offset: 5px;
 }
-/* Divider after "English" (that button is LTR, so inline-end is its right side) */
-.lang-toggle button:first-child { border-inline-end: 1px solid var(--rule); }
-.lang-toggle button:hover { color: var(--text); }
+.lang-toggle button:first-child { border-inline-end: 1px solid var(--rule-line); }
+.lang-toggle button:hover { color: var(--ink-blue); }
 .lang-toggle button[aria-pressed="true"] {
-  color: var(--accent-text);
+  color: var(--ink-blue);
   font-weight: 700;
-  text-decoration: underline 2px;
+  text-decoration: underline wavy 1.5px;
 }
 
-/* ---------- Prompt: centered round letter ---------- */
-
-.prompt {
-  display: grid;
-  justify-items: center;
-  gap: 6px;
-  text-align: center;
-}
-
-.round-label {
-  color: var(--muted);
-  font-size: 1rem;
-}
-
-.big-letter {
-  font-size: 5.5rem;
-  font-weight: 700;
-  line-height: 1.1;
-  color: var(--accent-text);
-  padding-inline: 0.25em;
-  /* Highlighter stroke across the lower part of the letter */
-  background: linear-gradient(transparent 62%, var(--mark) 62%, var(--mark) 88%, transparent 88%);
-}
-
-/* Gentle fade each time a new letter is drawn */
-.big-letter.pop { animation: fade-in 0.4s ease-out; }
-@keyframes fade-in {
-  from { opacity: 0; transform: translateY(-6px); }
-  to   { opacity: 1; transform: none; }
-}
-
-.prompt-copy { max-width: 36rem; }
-
-.prompt-text {
-  font-size: 1.3rem;
-  font-weight: 400;
-  line-height: 1.45;
-}
-.prompt-text .prompt-letter {
-  color: var(--accent-text);
-  font-weight: 700;
-}
-
-/* ---------- Timer ---------- */
-
-.timer {
-  display: grid;
-  justify-items: center;
-  gap: 2px;
-  width: min(14rem, 100%);
-  margin-block-start: 6px;
-}
-.timer-label { font-size: 0.9rem; color: var(--muted); }
-.timer-value {
-  font-size: 1.6rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-.timer-bar {
-  width: 100%;
-  height: 2px;
-  background: var(--border);
-}
-.timer-fill {
-  display: block;
-  height: 100%;
-  width: calc(var(--progress, 1) * 100%);
-  background: var(--highlight);
-  transition: width 0.25s linear;
-}
-.timer.is-low .timer-value { color: var(--warn); }
-.timer.is-low .timer-fill { background: var(--warn); }
-
-/* ---------- Controls: a ruled strip ---------- */
-
-.controls {
+.round-bar {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 12px 20px;
-  padding-block: 10px;
-  border-block: 1px solid var(--border);
+  gap: 14px 24px;
 }
+
+/* ---------- The letter box ---------- */
+
+.letter-box {
+  position: relative;
+  flex: none;
+  width: 4.5rem;
+  height: 4.5rem;
+  display: grid;
+  place-items: center;
+}
+.letter-box-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  stroke: var(--ink-blue);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.letter {
+  position: relative;
+  font-family: var(--font-hand);
+  font-size: 2.9rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink-blue);
+  transform: rotate(calc(-2deg * var(--dir)));
+}
+html[lang="fa"] .letter { font-weight: 400; font-size: 3.1rem; }
+
+/* While letters run past: faded ink */
+.letter-box.is-running .letter { font-weight: 400; }
+
+/* Landing: the letter is "written" in from the line start */
+.letter-box.is-landed .letter { animation: write-in 0.32s ease-out both; }
+@keyframes write-in {
+  from { clip-path: inset(0 100% 0 0); }
+  to   { clip-path: inset(0 0 0 0); }
+}
+html[dir="rtl"] .letter-box.is-landed .letter { animation-name: write-in-rtl; }
+@keyframes write-in-rtl {
+  from { clip-path: inset(0 0 0 100%); }
+  to   { clip-path: inset(0 0 0 0); }
+}
+
+.round-meta { display: grid; gap: 2px; min-width: 9rem; }
+.round-label {
+  font-family: var(--font-hand);
+  font-size: 1.1rem;
+  color: var(--ink-blue);
+}
+.hint {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--ink-blue);
+  max-width: 20rem;
+}
+
+/* ---------- Stamps (buttons) ---------- */
+
+.stamp {
+  position: relative;
+  padding: 0.55em 1.15em;
+  border: 2px solid var(--ink-blue);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink-blue);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transform: rotate(calc(-1.2deg * var(--dir)));
+  filter: url(#rough);                 /* rubber-stamp edges (displacement only, no color) */
+  transition: transform 0.08s ease-out, background-color 0.12s;
+}
+/* Inner rule of the rubber stamp */
+.stamp::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border: 1px solid var(--ink-blue);
+  pointer-events: none;
+}
+html[lang="fa"] .stamp {
+  font-family: "Lalezar", var(--font-mono);
+  font-weight: 400;
+  letter-spacing: 0;
+  font-size: 1.05rem;
+}
+/* Hover: pressed harder, the inner rule inks in thicker */
+.stamp:hover:not(:disabled)::after { border-width: 2px; }
+.stamp:active:not(:disabled) { transform: rotate(calc(-1.2deg * var(--dir))) translateY(1px) scale(0.96); }
+.stamp:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* After grading, New round asks to be pressed next */
+#new-round.is-next::after { border-width: 2px; }
+
+/* ---------- Timer: a hand-sketched pie that depletes ---------- */
+
+.timer-wrap {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-inline-start: auto;
+}
+
+.timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.timer-pie {
+  width: 46px;
+  height: 46px;
+  overflow: visible;
+  transform: scaleX(var(--dir));       /* depletes the mirrored way in RTL */
+}
+.pie {
+  fill: none;
+  stroke: url(#hatch);
+  stroke-width: 17;                    /* = 2r, so the dash draws a wedge */
+  transform: rotate(-90deg);
+  transform-origin: 22px 22px;
+  transition: stroke-dasharray 0.25s linear;
+}
+.pie-outline {
+  fill: none;
+  stroke: var(--ink-blue);
+  stroke-width: 1.3;
+  stroke-linecap: round;
+  opacity: 0.85;
+}
+.timer-text { display: grid; line-height: 1.15; }
+.timer-label {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--ink-blue);
+}
+.timer-value {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+}
+.timer.is-low .pie { stroke: url(#hatch-red); }
+.timer.is-low .pie-outline { stroke: var(--ink-red); }
+.timer.is-low .timer-value { color: var(--ink-red); }
+.timer.is-off { opacity: 0.35; }
 
 .timer-settings {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--ink-blue);
 }
-
 .check,
 .seconds {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   cursor: pointer;
 }
 .check input {
-  width: 1.05rem;
-  height: 1.05rem;
-  accent-color: var(--accent);
+  width: 0.95rem;
+  height: 0.95rem;
   margin: 0;
 }
 .seconds input {
-  width: 4rem;
-  padding: 2px 4px;
+  width: 3rem;
+  padding: 0 2px;
   border: 0;
-  border-block-end: 1px solid var(--rule);
+  border-block-end: 1px solid var(--ink-blue);
   border-radius: 0;
   background: transparent;
+  font-family: var(--font-mono);
   text-align: center;
 }
 .seconds input:disabled { opacity: 0.5; }
-.seconds span { color: var(--muted); }
 
-.total-pill { margin-inline-start: auto; }
-.total-pill strong {
-  color: var(--accent-text);
-  font-size: 1.2rem;
-  margin-inline-start: 4px;
+/* ---------- The ruled sheet ---------- */
+
+/* Ruled lines run edge to edge, one every --line, continuing below the table */
+.sheet-area {
+  position: relative;
+  min-height: 55vh;
+  margin-inline: calc(-1 * var(--pad));
+  padding-inline: var(--pad);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0 calc(var(--line) - 1px),
+    var(--rule-line) calc(var(--line) - 1px) var(--line)
+  );
 }
 
-/* ---------- Buttons ---------- */
-
-.btn {
-  border-radius: var(--radius);
-  padding: 8px 22px;
-  font-weight: 700;
-  cursor: pointer;
-  border: 1px solid transparent;
-  transition: background-color 0.15s, color 0.15s;
+.sheet-scroll {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
 }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.sheet-scroll:focus-visible { outline-offset: -2px; }
 
-.btn-primary {
-  background: var(--accent);
-  color: var(--accent-ink);
-  min-width: 11rem;
-  font-size: 1.05rem;
-  letter-spacing: 0.03em;
-}
-.btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
-
-.btn-secondary {
-  background: transparent;
-  color: var(--accent-text);
-  border-color: var(--accent-text);
-}
-.btn-secondary:hover:not(:disabled),
-.btn-secondary.is-next {          /* draw attention once results are in */
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-ink);
-}
-
-/* ---------- Answer fields: blanks written on underlines ---------- */
-
-.fields {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px 36px;
-}
-
-.field { display: grid; gap: 0; }
-.field label {
-  color: var(--muted);
-  font-size: 1rem;
-  font-weight: 600;
-}
-
-.field input {
+.sheet {
   width: 100%;
-  padding: 6px 2px 4px;
-  border: 0;
-  border-block-end: 1px solid var(--rule);
-  border-radius: 0;
-  background: transparent;
+  min-width: calc(var(--margin-w) + 10 * var(--col-w) + var(--score-w));
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.sheet th,
+.sheet td {
+  height: var(--line);
+  /* Tight line-height + bottom padding: content stays shorter than the row,
+     so every row is exactly one ruled line, whatever font or mark is inside */
+  padding: 0 0.5rem 6px;
+  line-height: 1.15;
+  text-align: start;
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+}
+
+/* Hand-ruled column lines */
+.sheet td + td,
+.sheet th + th,
+.sheet th + td { border-inline-start: 1px solid var(--rule-line); }
+
+/* Column headers, written in ballpoint across the top line */
+.sheet thead th {
+  color: var(--ink-blue);
+  font-family: var(--font-head);
+  font-weight: 700;
   font-size: 1.15rem;
-  transition: border-color 0.15s, box-shadow 0.15s;
 }
-.field input::placeholder { color: var(--muted); opacity: 0.7; font-style: italic; }
-html[lang="fa"] .field input::placeholder { font-style: normal; }
-/* Focus: the underline thickens and takes the accent color */
-.field input:focus { outline: none; border-block-end-color: var(--focus); box-shadow: 0 2px 0 var(--focus); }
-.field input:disabled { cursor: default; }
+html[lang="fa"] .sheet thead th { font-weight: 400; }
+.sheet thead .col-letter { font-size: 0.95rem; text-overflow: clip; }
 
-/* Post-submit marking (results table also states it in words) */
-.field input.is-valid   { border-block-end-color: var(--valid);          box-shadow: 0 1px 0 var(--valid); }
-.field input.is-invalid { border-block-end-color: var(--invalid-border); box-shadow: 0 1px 0 var(--invalid-border); text-decoration: line-through 1px var(--invalid-border); }
-.field input.is-empty   { border-block-end-style: dashed; }
-
-.form-actions {
-  display: flex;
-  justify-content: center;
-  margin-block-start: 28px;
-}
-
-/* ---------- Results: a ruled score table ---------- */
-
-.results {
-  padding-block-start: 18px;
-  border-block-start: 3px double var(--rule);
-}
-.results h2 {
-  font-size: 1.4rem;
+/* Margin column: round number + letter; sticky, its edge is the red margin line */
+.sheet .col-letter {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 2;
+  width: var(--margin-w);
+  border-inline-end: 2px solid var(--margin-line);
+  background-color: var(--paper);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0 calc(var(--line) - 1px),
+    var(--rule-line) calc(var(--line) - 1px) var(--line)
+  );
   text-align: center;
-  margin-block-end: 14px;
 }
-/* Focus is moved here after submit for screen readers; it is not a control, so no ring */
-.results:focus { outline: none; }
+.sheet .col-letter + * { border-inline-start: 0; }
+.sheet .col-score { width: var(--score-w); text-align: center; overflow: visible; }
 
-.notice {
-  padding-inline-start: 12px;
-  border-inline-start: 3px solid var(--warn);
-  font-style: italic;
-  margin-block-end: 14px;
+/* Isolated so a Latin letter from an English round sits cleanly beside Persian digits */
+.row-num,
+.row-letter { unicode-bidi: isolate; }
+.row-num {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--ink-blue);
+  margin-inline-end: 0.35rem;
 }
-html[lang="fa"] .notice { font-style: normal; }
+.row-letter {
+  font-family: var(--font-hand);
+  font-size: 1.45rem;
+  color: var(--ink-blue);
+}
 
-.results-list {
-  list-style: none;
-  margin: 0;
+/* ---------- Current row: the only editable one ---------- */
+
+.row.current td { position: relative; padding-block-end: 1px; }
+
+.row.current input {
+  display: block;
+  width: 100%;
+  height: calc(var(--line) - 4px);
   padding: 0;
-  border-block-start: 1px solid var(--rule);
+  border: 0;
+  background: transparent;
+  color: var(--ink-blue);
+  font-family: var(--font-hand);
+  font-size: 1.25rem;
+  line-height: calc(var(--line) - 4px);
+  caret-color: var(--ink-blue);
+  outline: none;                       /* focus = the pen stroke below */
+}
+.row.current input:disabled { cursor: default; }
+
+/* Focus: a pen stroke draws under the word, line-start to line-end */
+.row.current td::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0.4rem;
+  bottom: 4px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--ink-blue);
+  opacity: 0.85;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.2s ease-out;
+  pointer-events: none;
+}
+html[dir="rtl"] .row.current td::after { transform-origin: right center; }
+.row.current td:focus-within::after { transform: scaleX(1); }
+
+/* ---------- Earlier rows: the same blue, faded; graded in red ---------- */
+
+.row.past td { position: relative; color: var(--ink-blue-faded); }
+.answer {
+  font-family: var(--font-hand);
+  font-size: 1.2rem;
 }
 
-.result-row {
-  display: grid;
-  grid-template-columns: 7.5rem minmax(0, 1fr) auto 3rem;
-  align-items: baseline;
-  gap: 12px;
-  padding: 9px 4px;
-  border-block-end: 1px dotted var(--rule);
+/* Red-pen marks: drawn with pathLength=1 so the stroke can "write" itself */
+.mark {
+  fill: none;
+  stroke: var(--ink-red);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  overflow: visible;
+  transform: rotate(calc(var(--rot, 0deg) * var(--dir)));
 }
-.result-cat { font-weight: 600; color: var(--muted); }
-.result-answer {
-  overflow-wrap: anywhere;
+.mark path { stroke-dasharray: 1; stroke-dashoffset: 0; }
+
+.mark-check,
+.mark-dash {
+  width: 1.05em;
+  height: 1.05em;
+  margin-inline-start: 0.3em;
+  vertical-align: middle;   /* baseline alignment would push the row past one ruled line */
+}
+.mark-dash { margin-inline-start: 0.1em; }
+/* The slash crosses the whole word */
+.mark-slash {
+  position: absolute;
+  inset-block: 9px 7px;
+  inset-inline: 0.35rem;
+  width: calc(100% - 0.7rem);
+  height: calc(100% - 16px);
+  stroke-width: 2;
+}
+html[dir="rtl"] .mark-slash { transform: scaleX(-1) rotate(calc(var(--rot, 0deg) * -1)); }
+
+/* Circled round score */
+.circled {
+  position: relative;
+  display: inline-block;
+  min-width: 2.6em;
+  color: var(--ink-red);
+  font-family: var(--font-pen);
+  font-weight: 700;
+  font-size: 1.25rem;
+  line-height: 1;
+  text-align: center;
+  vertical-align: middle;
+  transform: rotate(calc(var(--rot, 0deg) * var(--dir)));
+}
+html[lang="fa"] .circled { font-weight: 400; }
+.circled .mark-circle {
+  position: absolute;
+  inset: -0.5em -0.15em -0.45em;
+  width: calc(100% + 0.3em);
+  height: calc(100% + 0.95em);
+  stroke-width: 1.7;
+  transform: none;
+  filter: none;
+}
+
+/* Freshly graded row: marks write themselves in, one after another */
+.row.is-fresh .mark path {
+  stroke-dashoffset: 1;
+  animation: pen-draw 0.26s ease-out forwards;
+  animation-delay: calc(0.3s + var(--i, 0) * 0.07s);
+}
+.row.is-fresh .circled .num {
+  opacity: 0;
+  animation: ink-in 0.2s ease-out forwards;
+  animation-delay: calc(0.3s + var(--i, 0) * 0.07s);
+}
+@keyframes pen-draw { to { stroke-dashoffset: 0; } }
+@keyframes ink-in { to { opacity: 1; } }
+
+/* ---------- Total ---------- */
+
+.total-row th,
+.total-row td { border-inline-start: 0; }
+.total-label {
+  color: var(--ink-red);
+  font-family: var(--font-pen);
   font-size: 1.05rem;
 }
-.result-answer.is-none { color: var(--muted); font-style: italic; }
-html[lang="fa"] .result-answer.is-none { font-style: normal; }
-.result-reason {
-  display: block;
-  font-size: 0.85rem;
-  color: var(--muted);
-  font-style: italic;
-}
-html[lang="fa"] .result-reason { font-style: normal; }
-.result-points {
-  text-align: end;
+.total {
+  display: inline-block;
+  padding: 0 0.3em;
+  color: var(--ink-red);
+  font-family: var(--font-pen);
   font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
-/* Status as plain colored text with a mark, no pill */
-.badge {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 4px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-.badge.valid   { color: var(--valid); }
-.badge.invalid { color: var(--invalid); }
-.badge.empty   { color: var(--muted); }
-
-.score-summary {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 8px 24px;
-  margin-block-start: 6px;
-  padding-block-start: 12px;
-  border-block-start: 3px double var(--rule);
-  font-size: 1.1rem;
-}
-.score-summary strong {
-  color: var(--accent-text);
   font-size: 1.5rem;
-  margin-inline-start: 4px;
+  line-height: 1.15;
+  border-block-end: 4px double var(--ink-red);
+  transform: rotate(calc(-1.5deg * var(--dir)));
+}
+html[lang="fa"] .total { font-weight: 400; }
+
+/* ---------- Submit tab, clipped to the page edge ---------- */
+
+.sheet-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-block-start: calc(var(--line) * 0.5);
+  /* overhang past the paper onto the desk, like a tab clipped on */
+  margin-inline-end: calc(-1 * var(--pad) - 14px);
+}
+.stamp-tab {
+  background: var(--paper);
+  border-inline-end-width: 0;
+  padding-inline-end: 1.6em;
+  transform: none;
+}
+.stamp-tab::after { border-inline-end-width: 0; inset-inline-end: 0; }
+.stamp-tab:active:not(:disabled) { transform: translateY(1px); }
+
+/* ---------- The "Graded" rubber stamp ---------- */
+
+.graded-stamp {
+  position: absolute;
+  top: var(--stamp-top, 0);
+  inset-inline-end: 14%;
+  z-index: 5;
+  padding: 0.25em 0.8em;
+  border: 3px solid var(--ink-red);
+  color: var(--ink-red);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 1.7rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-50%) rotate(calc(-7deg * var(--dir)));
+  filter: url(#rough);                 /* rubber-stamp edges (displacement only, no color) */
+}
+.graded-stamp::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 1px solid var(--ink-red);
+}
+html[lang="fa"] .graded-stamp {
+  font-family: "Lalezar", var(--font-mono);
+  font-weight: 400;
+  letter-spacing: 0;
+  font-size: 2rem;
+}
+.graded-stamp.is-stamping { animation: stamp-down 1.7s ease-out both; }
+@keyframes stamp-down {
+  0%   { opacity: 0;    transform: translateY(-50%) rotate(calc(-7deg * var(--dir))) scale(1.9); }
+  12%  { opacity: 0.92; transform: translateY(-50%) rotate(calc(-7deg * var(--dir))) scale(0.95); }
+  18%  { opacity: 0.92; transform: translateY(-50%) rotate(calc(-7deg * var(--dir))) scale(1); }
+  75%  { opacity: 0.85; transform: translateY(-50%) rotate(calc(-7deg * var(--dir))) scale(1); }
+  100% { opacity: 0;    transform: translateY(-50%) rotate(calc(-7deg * var(--dir))) scale(1); }
 }
 
 /* ---------- Mobile ---------- */
 
-@media (max-width: 640px) {
-  .fields { grid-template-columns: 1fr; }
-
-  .big-letter { font-size: 4.25rem; }
-  .prompt-text { font-size: 1.1rem; }
-
-  .total-pill { margin-inline-start: 0; }
-  .btn-primary { width: 100%; }
-
-  .result-row { grid-template-columns: minmax(0, 1fr) auto auto; }
-  .result-answer { grid-column: 1 / -1; grid-row: 2; }
+@media (max-width: 720px) {
+  :root {
+    --margin-w: 3.9rem;
+    --col-w: 6.75rem;
+    --score-w: 4.6rem;
+  }
+  :root { --rug-gap: 12px; }
+  .paper { margin: var(--rug-gap); }
+  .top-margin { padding-inline-start: calc(var(--margin-w) + 10px); }
+  .round-bar { gap: 12px 16px; }
+  .timer-wrap { margin-inline-start: 0; }
+  .sheet-actions { margin-inline-end: 0; }
+  .stamp-tab { border-inline-end-width: 2px; padding-inline-end: 1.15em; }
+  .stamp-tab::after { border-inline-end-width: 1px; inset-inline-end: 3px; }
+  .graded-stamp { inset-inline-end: 8%; font-size: 1.35rem; }
 }
 
 /* ---------- Reduced motion ---------- */
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
-    animation: none !important;
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
     transition: none !important;
   }
 }

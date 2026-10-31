@@ -1,6 +1,6 @@
 # Esm-o-Famil (اسم فامیل)
 
-The Persian word game in the browser, in English and Farsi. Each round draws a random letter; write a word starting with that letter for every category and get 10 points per valid answer.
+The Persian word game in the browser, on a notebook page lying on a rug. It opens in Farsi (switch to English at the top). Each round, letters run for two seconds and land on one; write a word starting with that letter for every category, and the row is graded in red pen: 10 points per valid answer.
 
 Plain HTML, CSS and vanilla JS, served and built with [Vite](https://vite.dev).
 
@@ -28,8 +28,9 @@ Then open the URL Vite prints (by default http://localhost:5173).
 
 ```
 index.html       page markup (Vite entry point)
-src/styles.css   styles, light/dark tokens, RTL-aware layout
+src/styles.css   styles: six color tokens, RTL-aware notebook layout
+images/          rug background (background-web.jpg) and icon
 src/script.js    game logic
 ```
 
-To change the categories, edit the `CATEGORIES` array at the top of `src/script.js`. Points, timer limits and the English/Persian alphabets are constants just below it.
+To change the categories, edit the `CATEGORIES` array at the top of `src/script.js`. Points, timer limits, the letter-picking time and the English/Persian alphabets are constants just below it.

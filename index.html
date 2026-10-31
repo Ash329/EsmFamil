@@ -1,103 +1,125 @@
 <!doctype html>
-<!-- lang/dir are updated by script.js when the language toggle changes -->
-<html lang="en" dir="ltr">
+<!-- Farsi by default; lang/dir are updated by script.js when the language toggle changes -->
+<html lang="fa" dir="rtl">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Esm-o-Famil</title>
-  <meta name="description" content="Esm-o-Famil (اسم فامیل), the Persian word game, in English and Farsi.">
+  <title>اسم فامیل</title>
+  <meta name="description" content="Esm-o-Famil (اسم فامیل), the Persian word game, on a notebook page — in English and Farsi.">
   <link rel="icon" type="image/png" sizes="16x16" href="/images/icon-16.png">
 
-  <!-- Lora: classic serif for English; Vazirmatn: Persian-friendly font for Farsi (both fall back to system fonts) -->
+  <!-- Kalam: English handwriting · Aref Ruqaa: Persian handwriting · Lalezar: Persian headers & stamps
+       Courier Prime: stamped/typewriter chrome · Vazirmatn: Persian fallback for small UI text -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=Vazirmatn:wght@400;500;700;800&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@400;700&family=Courier+Prime:wght@400;700&family=Kalam:wght@400;700&family=Lalezar&family=Vazirmatn:wght@400;700&display=swap">
 
   <link rel="stylesheet" href="/src/styles.css">
-  <!-- type="module" lets Vite bundle it; modules are deferred like the old `defer` -->
+  <!-- type="module" lets Vite bundle it; modules are deferred like `defer` -->
   <script type="module" src="/src/script.js"></script>
 </head>
 <body>
-  <div class="page">
+  <!-- Shared SVG definitions: ink hatching for the timer, rubber-stamp roughness filter -->
+  <svg class="svg-defs" aria-hidden="true" focusable="false">
+    <defs>
+      <pattern id="hatch" width="3.5" height="3.5" patternUnits="userSpaceOnUse" patternTransform="rotate(40)">
+        <line x1="0" y1="0" x2="0" y2="3.5" class="hatch-line"></line>
+      </pattern>
+      <pattern id="hatch-red" width="3.5" height="3.5" patternUnits="userSpaceOnUse" patternTransform="rotate(40)">
+        <line x1="0" y1="0" x2="0" y2="3.5" class="hatch-line hatch-line-red"></line>
+      </pattern>
+      <!-- Uneven rubber-stamp edges -->
+      <filter id="rough" x="-5%" y="-5%" width="110%" height="110%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="3" result="noise"></feTurbulence>
+        <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.6"></feDisplacementMap>
+      </filter>
+    </defs>
+  </svg>
 
-    <!-- ===== Header: title + language toggle ===== -->
-    <!-- dir="ltr": title stays left and the language switch right in both languages -->
-    <header class="topbar" dir="ltr">
-      <h1 class="brand">
-        <img class="brand-icon" src="/images/icon-16.png" alt="" width="36" height="36">
-        <span id="brand" dir="auto">Esm-o-Famil</span>
-      </h1>
+  <div class="paper">
 
-      <div class="lang-toggle" role="group" id="lang-group" aria-label="Language">
-        <button type="button" data-lang="en" lang="en" dir="ltr" aria-pressed="true">English</button>
-        <button type="button" data-lang="fa" lang="fa" dir="rtl" aria-pressed="false">فارسی</button>
+    <!-- ===== Top margin (unruled): title, language, the round's letter, timer ===== -->
+    <header class="top-margin">
+      <!-- dir="ltr": title stays left and the language switch right in both languages -->
+      <div class="masthead" dir="ltr">
+        <h1 class="title">
+          <img class="title-icon" src="/images/icon-16.png" alt="" width="22" height="22">
+          <span id="brand" dir="auto">اسم فامیل</span>
+        </h1>
+        <div class="lang-toggle" role="group" id="lang-group" aria-label="Language">
+          <button type="button" data-lang="en" lang="en" dir="ltr" aria-pressed="false">English</button>
+          <button type="button" data-lang="fa" lang="fa" dir="rtl" aria-pressed="true">فارسی</button>
+        </div>
+      </div>
+
+      <div class="round-bar">
+        <!-- The letter, hand-written in a hand-drawn box -->
+        <div class="letter-box" id="letter-box">
+          <svg class="letter-box-frame" viewBox="0 0 68 68" aria-hidden="true" focusable="false">
+            <path id="letter-box-path"></path>
+          </svg>
+          <span class="letter" id="letter" aria-hidden="true">?</span>
+        </div>
+
+        <div class="round-meta">
+          <p class="round-label" id="round-label">Round 1</p>
+          <p class="hint" id="hint"></p>
+        </div>
+
+        <!-- Starts the next round: letters run for 2 s, then land on one -->
+        <button type="button" class="stamp" id="new-round" hidden>New round</button>
+
+        <div class="timer-wrap">
+          <div class="timer" id="timer">
+            <svg class="timer-pie" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+              <circle class="pie" id="timer-pie" cx="22" cy="22" r="8.5"></circle>
+              <path class="pie-outline" id="timer-outline"></path>
+            </svg>
+            <span class="timer-text">
+              <span class="timer-label" id="timer-label">Time left</span>
+              <span class="timer-value" id="timer-value" role="timer">1:00</span>
+            </span>
+          </div>
+          <div class="timer-settings">
+            <label class="check">
+              <input type="checkbox" id="timer-enabled" checked>
+              <span id="timer-enabled-label">timer</span>
+            </label>
+            <label class="seconds">
+              <input type="number" id="timer-seconds" dir="ltr" inputmode="numeric"
+                     min="10" max="600" step="5" value="60" aria-label="Timer length in seconds">
+              <span id="seconds-label" aria-hidden="true">sec</span>
+            </label>
+          </div>
+        </div>
       </div>
     </header>
 
-    <main>
-      <!-- ===== Round prompt: big letter + instruction + optional timer ===== -->
-      <section class="prompt" aria-labelledby="prompt-text">
-        <div class="big-letter" id="letter-tile" aria-hidden="true">B</div>
-
-        <div class="prompt-copy">
-          <p class="round-label" id="round-label">Round 1</p>
-          <h2 class="prompt-text" id="prompt-text">
-            <span id="prompt-letter-label">Letter:</span>
-            <bdi id="prompt-letter" class="prompt-letter">B</bdi>
-            <span aria-hidden="true">—</span>
-            <span id="prompt-instruction">write a word for each category</span>
-          </h2>
-        </div>
-
-        <!-- Countdown, only shown when the timer is enabled -->
-        <div class="timer" id="timer" hidden>
-          <span class="timer-label" id="timer-label">Time left</span>
-          <span class="timer-value" id="timer-value" role="timer">1:00</span>
-          <span class="timer-bar" aria-hidden="true"><span class="timer-fill" id="timer-fill"></span></span>
-        </div>
-      </section>
-
-      <!-- ===== Controls: new round, timer settings, running total ===== -->
-      <div class="controls">
-        <button type="button" class="btn btn-secondary" id="new-round">New round</button>
-
-        <div class="timer-settings">
-          <label class="check">
-            <input type="checkbox" id="timer-enabled">
-            <span id="timer-enabled-label">Timer</span>
-          </label>
-          <label class="seconds">
-            <input type="number" id="timer-seconds" dir="ltr" inputmode="numeric"
-                   min="10" max="600" step="5" value="60" aria-label="Timer length in seconds">
-            <span id="seconds-label" aria-hidden="true">seconds</span>
-          </label>
-        </div>
-
-        <p class="total-pill">
-          <span id="total-label">Total</span>
-          <strong id="total-value">0</strong>
-        </p>
+    <!-- ===== The ruled sheet: one row per round ===== -->
+    <form class="sheet-area" id="sheet-form" novalidate autocomplete="off">
+      <div class="sheet-scroll" id="sheet-scroll" tabindex="0" role="region" aria-label="Score sheet">
+        <table class="sheet" id="sheet">
+          <thead><tr id="head-row"></tr></thead>
+          <tbody id="rows"></tbody>
+          <tfoot>
+            <tr class="total-row">
+              <th scope="row" class="col-letter total-label" id="total-label">Total</th>
+              <td class="total-spacer" id="total-spacer"></td>
+              <td class="col-score"><span class="total" id="total-value">0</span></td>
+            </tr>
+          </tfoot>
+        </table>
       </div>
 
-      <!-- ===== Answer form: inputs are generated from CATEGORIES in script.js ===== -->
-      <form class="answers" id="answers-form" novalidate autocomplete="off">
-        <div class="fields" id="fields"></div>
-        <div class="form-actions">
-          <button type="submit" class="btn btn-primary" id="submit-btn">Submit</button>
-        </div>
-      </form>
+      <div class="sheet-actions">
+        <button type="submit" class="stamp stamp-tab" id="submit-btn" disabled>Submit</button>
+      </div>
 
-      <!-- ===== Results (hidden until the round is submitted) ===== -->
-      <section class="results" id="results" tabindex="-1" aria-labelledby="results-title" hidden>
-        <h2 id="results-title">Results</h2>
-        <p class="notice" id="results-notice" hidden></p>
-        <ol class="results-list" id="results-list"></ol>
-        <div class="score-summary">
-          <p><span id="round-score-label">Round score</span> <strong id="round-score">0</strong></p>
-          <p><span id="running-total-label">Running total</span> <strong id="running-total">0</strong></p>
-        </div>
-      </section>
-    </main>
+      <!-- "Graded" rubber stamp, thumped onto the row on submit -->
+      <div class="graded-stamp" id="graded-stamp" aria-hidden="true">Graded</div>
+    </form>
+
+    <p class="sr-only" id="announcer" aria-live="polite"></p>
   </div>
 </body>
 </html>
