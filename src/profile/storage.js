@@ -17,12 +17,6 @@ export const LANGS = ['en', 'fa'];
 
 export const emptyStore = () => ({ version: STORE_VERSION, profile: null, settings: {} });
 
-/** First visit: Farsi for Farsi browsers, English otherwise. */
-export function browserLang(languages = globalThis.navigator?.languages ?? [globalThis.navigator?.language]) {
-  const first = String(languages?.find(Boolean) ?? '').toLowerCase();
-  return first.startsWith('fa') ? 'fa' : 'en';
-}
-
 /** Turn whatever is stored into a valid store. Never throws. */
 export function parseStore(text) {
   if (typeof text !== 'string' || text === '') return emptyStore();

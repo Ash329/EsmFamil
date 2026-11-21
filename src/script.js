@@ -7,7 +7,7 @@
 'use strict';
 
 import {
-  createStore, browserLang, createProfile, renameProfile,
+  createStore, createProfile, renameProfile,
   createNameScreen, createProfileMenu, PROFILE_STRINGS, STORAGE_KEY,
 } from './profile/index.js';
 
@@ -114,7 +114,7 @@ const store = createStore();
 const saved = store.load();
 
 const state = {
-  lang: saved.settings.lang ?? browserLang(), // saved choice, else the browser's language
+  lang: saved.settings.lang ?? 'fa', // saved choice, else Farsi
   profile: saved.profile, // { id, name, avatar, createdAt } or null → name screen
   playing: false,     // a round has been started for this player
   phase: 'picking',   // 'picking' (letters running) | 'playing' (row editable) | 'graded'

@@ -3,7 +3,7 @@ import { validateName, normalizeName, NAME_MAX } from '../src/profile/name.js';
 import { getInitial } from '../src/profile/initial.js';
 import { colorForId, INK_COLORS } from '../src/profile/color.js';
 import { createProfile, renameProfile, sanitizeProfile, newId } from '../src/profile/profile.js';
-import { parseStore, createStore, browserLang, STORAGE_KEY } from '../src/profile/storage.js';
+import { parseStore, createStore, STORAGE_KEY } from '../src/profile/storage.js';
 
 const ZWNJ = '‌';
 
@@ -271,15 +271,5 @@ describe('createStore', () => {
     const storage = fakeStorage();
     storage.setItem(STORAGE_KEY, '{"version":1,"profile":{"id":');
     expect(createStore(() => storage).load().profile).toBeNull();
-  });
-});
-
-describe('browserLang', () => {
-  it('is fa only for Farsi browsers', () => {
-    expect(browserLang(['fa-IR', 'en'])).toBe('fa');
-    expect(browserLang(['FA'])).toBe('fa');
-    expect(browserLang(['en-US', 'fa'])).toBe('en');
-    expect(browserLang([])).toBe('en');
-    expect(browserLang(undefined)).toBe('en');
   });
 });
