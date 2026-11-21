@@ -10,6 +10,7 @@ import {
   createStore, createProfile, renameProfile,
   createNameScreen, createProfileMenu, PROFILE_STRINGS, STORAGE_KEY,
 } from './profile/index.js';
+import { revealDelta } from './sheet/reveal.js';
 
 
 /** Categories in display order (the sheet's columns). Add, remove or reorder here. */
@@ -72,6 +73,9 @@ const STRINGS = {
     valid: 'valid',
     invalid: l => `does not start with ${l}`,
     empty: 'empty',
+    roundTotal: 'Round total',
+    card: (n, l) => `Round ${n} – letter ${l}`,
+    points: p => `${p} pts`,
     announceLetter: l => `Letter ${l}. Go!`,
     announceGraded: (score, total) => `Graded: ${score} points this round, ${total} in total.`,
     announceTimeUp: 'Time’s up.',
@@ -99,6 +103,9 @@ const STRINGS = {
     valid: 'درست',
     invalid: l => `با «${l}» شروع نمی‌شود`,
     empty: 'خالی',
+    roundTotal: 'جمع این دور',
+    card: (n, l) => `دور ${n} – حرف ${l}`,
+    points: p => `${p} امتیاز`,
     announceLetter: l => `حرف ${l}. شروع!`,
     announceGraded: (score, total) => `تصحیح شد: ${score} امتیاز در این دور، ${total} در مجموع.`,
     announceTimeUp: 'وقت تمام شد.',
@@ -132,6 +139,8 @@ const state = {
 };
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+/** Phones: one row per category instead of one column per category. Keep in sync with styles.css. */
+const phone = window.matchMedia('(max-width: 639.98px)');
 
 /* =====================================================================
    3. DOM references
@@ -162,6 +171,8 @@ const el = {
   timerSeconds: $('timer-seconds'),
   secondsLabel: $('seconds-label'),
   form: $('sheet-form'),
+  sheetBar: $('sheet-bar'),
+  barRound: $('bar-round'),
   scroll: $('sheet-scroll'),
   headRow: $('head-row'),
   rows: $('rows'),
@@ -305,13 +316,14 @@ function roughEllipsePath(cx, cy, rx, ry, wobbleAmt = 0.05) {
 
 const checkPath = () => `M${pt(1.5, 9, 0.6)} L${pt(6, 14, 0.5)} ${bow(6, 14, 15.5, 1.5, 0.8)}`;
 const dashPath = () => `M${pt(2, 9, 0.5)} ${bow(2, 9, 14, 8.5, 0.6)}`;
+const crossPath = () => `M${pt(2, 2, 0.6)} ${bow(2, 2, 14, 14, 0.7)} M${pt(14, 2, 0.6)} ${bow(14, 2, 2, 14, 0.7)}`;
 const slashPath = () => `M${pt(3, 21, 1)} ${bow(3, 21, 97, 3, 2)}`;
 const circlePath = () => roughEllipsePath(30, 17, 27, 14, 0.05);
 
 /** Build a red-pen mark. `stretch` marks fill their box (slash, circle). */
 function penMark(kind, d, rot, stretch) {
   const svg = document.createElementNS(SVG_NS, 'svg');
-  const viewBox = { check: '0 0 16 16', dash: '0 0 16 16', slash: '0 0 100 24', circle: '0 0 60 34' }[kind];
+  const viewBox = { check: '0 0 16 16', dash: '0 0 16 16', cross: '0 0 16 16', slash: '0 0 100 24', circle: '0 0 60 34' }[kind];
   svg.setAttribute('viewBox', viewBox);
   svg.setAttribute('class', `mark mark-${kind}`);
   svg.setAttribute('aria-hidden', 'true');
@@ -354,6 +366,14 @@ function renderHead() {
   el.totalSpacer.colSpan = CATEGORIES.length;
 }
 
+/** Category name in front of its answer. Phones only (desktop has the column headers);
+ *  hidden from screen readers because each answer already carries it in its label. */
+function makeCatLabel(cat) {
+  const label = makeEl('span', 'cat-label', cat[state.lang]);
+  label.setAttribute('aria-hidden', 'true');
+  return label;
+}
+
 /** The round's margin cell: small round number + the letter. */
 function makeMarginCell(roundNumber, letter) {
   const th = makeEl('th', 'col-letter');
@@ -374,14 +394,17 @@ function makeCurrentRow() {
 
   state.inputs = CATEGORIES.map((cat, i) => {
     const td = makeEl('td');
+    td.append(makeCatLabel(cat));
     const input = document.createElement('input');
     input.type = 'text';
     input.name = cat.id;
-    input.dir = 'auto';                        // mixed Persian/Latin text renders correctly
+    input.lang = state.lang;                   // keyboards and fonts pick the round's language
+    input.dir = state.lang === 'fa' ? 'rtl' : 'ltr';
     input.autocomplete = 'off';
     input.spellcheck = false;
     input.disabled = true;                     // unlocked when the letter lands
     input.setAttribute('autocapitalize', 'off');
+    input.setAttribute('autocorrect', 'off');  // Safari
     input.setAttribute('enterkeyhint', i === CATEGORIES.length - 1 ? 'done' : 'next');
     input.setAttribute('aria-label', s.answerLabel(cat[state.lang], s.round(fmt(roundNumber))));
     td.append(input);
@@ -396,12 +419,16 @@ function makeCurrentRow() {
 /** A graded row: faded-ink answers with red-pen marks and a circled score. */
 function makePastRow(entry, index, fresh) {
   const s = t();
-  const tr = makeEl('tr', `row past${fresh ? ' is-fresh' : ''}`);
-  tr.append(makeMarginCell(index + 1, entry.letter).th);
+  // A fresh row stays open on phones; older rounds are collapsed cards
+  const tr = makeEl('tr', `row past${fresh ? ' is-fresh is-open' : ''}`);
+  const { th } = makeMarginCell(index + 1, entry.letter);
+  th.append(makeCardToggle(entry, index, fresh));
+  tr.append(th);
 
   entry.cells.forEach((cell, i) => {
     const td = makeEl('td');
     td.style.setProperty('--i', i);            // staggers the pen strokes on a fresh row
+    td.append(makeCatLabel(CATEGORIES[i]));
 
     if (cell.status !== 'empty') {
       const answer = makeEl('span', 'answer');
@@ -412,19 +439,53 @@ function makePastRow(entry, index, fresh) {
     const kind = { valid: 'check', invalid: 'slash', empty: 'dash' }[cell.status];
     td.append(penMark(kind, cell.d, cell.rot, kind === 'slash'));
 
+    // Phones: a ✗ at the end of the row too (the slash alone crosses out the word)
+    if (kind === 'slash') td.append(penMark('cross', cell.x, cell.rot, false));
+
     const status = { valid: s.valid, invalid: s.invalid(entry.letter), empty: s.empty }[cell.status];
     td.append(makeEl('span', 'sr-only', `, ${status}`));
+
+    // Phones: the cell's points in red at the end of the row
+    const points = cell.status === 'valid' ? POINTS_PER_VALID : 0;
+    const pts = makeEl('span', 'pts', points ? `+${fmt(points)}` : fmt(0));
+    pts.setAttribute('aria-hidden', 'true');
+    td.append(pts);
     tr.append(td);
   });
 
   const scoreTd = makeEl('td', 'col-score');
   scoreTd.style.setProperty('--i', CATEGORIES.length);
+  scoreTd.append(makeEl('span', 'score-label', s.roundTotal));  // phones only
   const circled = makeEl('span', 'circled');
   circled.style.setProperty('--rot', `${entry.score.rot.toFixed(1)}deg`);
   circled.append(makeEl('span', 'num', fmt(entry.score.value)), penMark('circle', entry.score.d, 0, true));
   scoreTd.append(circled);
   tr.append(scoreTd);
   return tr;
+}
+
+/** Phones: the collapsed-card header of a graded round, "Round 2 – letter ب – 45 pts". */
+function makeCardToggle(entry, index, open) {
+  const s = t();
+  const button = makeEl('button', 'card-toggle');
+  button.type = 'button';
+  button.setAttribute('aria-expanded', String(open));
+  const title = makeEl('span', 'card-title');
+  title.append(s.card(fmt(index + 1), ''), makeEl('bdi', 'card-letter', entry.letter));
+  button.append(
+    makeEl('span', 'card-caret'),
+    title,
+    makeEl('span', 'sr-only', ' – '),
+    makeEl('span', 'card-score', s.points(fmt(entry.score.value))),
+  );
+  return button;
+}
+
+/** Open or close a graded round's card (phones). */
+function setCardOpen(row, open) {
+  row.classList.toggle('is-open', open);
+  if (!open) row.classList.remove('is-fresh');  // reopening shows the marks, it doesn't redraw them
+  row.querySelector('.card-toggle')?.setAttribute('aria-expanded', String(open));
 }
 
 /** Rebuild all graded rows (e.g. after a language switch). */
@@ -457,6 +518,8 @@ function renderControls() {
 
   const roundNumber = phase === 'graded' ? state.history.length : state.history.length + 1;
   el.roundLabel.textContent = s.round(fmt(roundNumber));
+  el.barRound.textContent = s.round(fmt(roundNumber));
+  el.form.dataset.phase = phase;             // phones: the bar shows the timer or New round
 
   const hint = { picking: s.hintPicking, playing: s.hintPlaying, graded: state.timedOut ? s.hintTimeUp : s.hintGraded }[phase];
   el.hint.textContent = hint;
@@ -542,6 +605,9 @@ function startPicking() {
   state.phase = 'picking';
   state.timedOut = false;
 
+  // Phones: last round's results fold into a card
+  el.rows.querySelectorAll('.row.past.is-open').forEach(row => setCardOpen(row, false));
+
   // Discard an unsubmitted row; start a new one
   if (state.currentRow) state.currentRow.remove();
   state.currentRow = makeCurrentRow();
@@ -602,7 +668,7 @@ function submitRound(timedOut = false) {
   const cells = state.inputs.map(input => {
     const status = judge(input.value);
     const d = { valid: checkPath, invalid: slashPath, empty: dashPath }[status]();
-    return { text: input.value.trim(), status, rot: rand(-3, 4), d };
+    return { text: input.value.trim(), status, rot: rand(-3, 4), d, x: crossPath() };
   });
   const value = cells.filter(c => c.status === 'valid').length * POINTS_PER_VALID;
   const entry = { letter: state.letter, cells, score: { value, rot: rand(-3, 4), d: circlePath() } };
@@ -623,7 +689,8 @@ function submitRound(timedOut = false) {
 
   const s = t();
   announce(`${timedOut ? `${s.announceTimeUp} ` : ''}${s.announceGraded(fmt(value), fmt(total))}`);
-  el.newRound.focus();
+  // Phones: New round is in the sticky bar; stay on the results instead of jumping to it
+  el.newRound.focus({ preventScroll: phone.matches });
 }
 
 /** Thump the "Graded" rubber stamp onto a row. */
@@ -673,6 +740,58 @@ el.rows.addEventListener('keydown', e => {
   if (next) next.focus();
   else submitRound(false);
 });
+
+// Phones: tap a graded round's card to open its answers (read-only)
+el.rows.addEventListener('click', e => {
+  const toggle = e.target.closest('.card-toggle');
+  if (!toggle) return;
+  const row = toggle.closest('.row');
+  setCardOpen(row, !row.classList.contains('is-open'));
+});
+
+/* Phones: keep the answer being written clear of the sticky bar and the keyboard.
+   The keyboard shrinks the visual viewport (not the layout one), so measure that. */
+function keepInView(input) {
+  if (!phone.matches || !input.isConnected) return;
+  const vv = window.visualViewport;
+  const view = vv ? { top: vv.offsetTop, height: vv.height } : { top: 0, height: window.innerHeight };
+  const barBottom = el.sheetBar.getBoundingClientRect().bottom;
+  const lineHeight = input.closest('td').offsetHeight;
+  const delta = revealDelta(input.closest('td').getBoundingClientRect(), view, {
+    top: Math.max(0, barBottom - view.top) + 8,
+    bottom: lineHeight,                        // and peek at the next category
+  });
+  if (Math.abs(delta) > 1) {
+    window.scrollBy({ top: delta, behavior: reducedMotion.matches ? 'auto' : 'smooth' });
+  }
+}
+
+el.rows.addEventListener('focusin', e => {
+  if (state.inputs.includes(e.target)) keepInView(e.target);
+});
+// The keyboard opening (or the URL bar resizing) changes the visible area
+window.visualViewport?.addEventListener('resize', () => {
+  if (state.inputs.includes(document.activeElement)) keepInView(document.activeElement);
+});
+
+/* Phones: the letter, the timer and the New round stamp live in the sticky
+   bar over the answer list; on wider screens they go back to the header.
+   Comment placeholders remember where each one came from. */
+const movable = [el.letterBox, el.timer, el.newRound].map(node => {
+  const home = document.createComment(node.id);
+  node.before(home);
+  return { node, home };
+});
+
+function placeRoundControls() {
+  if (phone.matches) {
+    el.barRound.before(movable[0].node);
+    el.barRound.after(movable[1].node, movable[2].node);
+  } else {
+    movable.forEach(({ node, home }) => home.after(node));
+  }
+}
+phone.addEventListener('change', placeRoundControls);
 
 // Turning the timer on/off or changing its length restarts the clock for this row.
 el.timerEnabled.addEventListener('change', startTimer);
@@ -785,6 +904,7 @@ function init() {
   el.timerSeconds.value = DEFAULT_TIMER_SECONDS;
   el.timerOutline.setAttribute('d', roughEllipsePath(22, 22, 19, 19, 0.04));
 
+  placeRoundControls();
   renderLanguage();
   renderHead();
   renderRows();

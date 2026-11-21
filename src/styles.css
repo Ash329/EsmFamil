@@ -957,6 +957,278 @@ html[lang="fa"] .menu-item.is-primary { font-weight: 400; text-decoration: under
   .player-button { font-size: 1.25rem; }
 }
 
+/* ---------- Phones: one ruled line per category ----------
+   Below 640px the table is laid out as a list: each category is one ruled
+   line, its name in the margin (left of the red line in English, right of
+   it in Farsi) and the answer written on the rest of the line. Only logical
+   properties and grid/flex here, so dir="rtl" mirrors it with no extra rules.
+   Every block is a whole number of --line tall, so the list stays on the
+   notebook's ruling. The breakpoint matches `phone` in script.js. */
+
+/* Phone-only pieces, off on wider screens */
+.sheet-bar,
+.cat-label,
+.card-toggle,
+.pts,
+.score-label,
+.mark-cross { display: none; }
+
+@media (max-width: 639.98px) {
+  :root {
+    --line: 2.75rem;                      /* 44px: every answer is a full-size tap target */
+    --margin-w: 5.75rem;                  /* the category names' column */
+    --pts-w: 2.9rem;                      /* red-pen column at the line end */
+  }
+
+  /* The header keeps the round hint and timer settings; the letter, timer
+     and New round stamp are moved into the sticky bar by script.js */
+  #round-label { display: none; }
+  .round-bar { gap: 10px 16px; }
+  .round-meta { min-width: 0; }
+
+  /* ----- Sticky bar: the round's letter and the clock, always in sight ----- */
+  .sheet-bar {
+    position: sticky;
+    top: 0;
+    z-index: 6;
+    display: grid;
+    grid-template-columns: var(--margin-w) minmax(0, 1fr) auto;
+    align-items: center;
+    height: calc(var(--line) * 2);
+    margin-inline: calc(-1 * var(--pad));
+    padding-inline: var(--pad);
+    background: var(--paper);
+    border-block-end: 1px solid var(--rule-line);
+    box-shadow: 0 6px 6px -6px rgba(31, 58, 147, 0.25);
+  }
+  /* The red margin line runs through the bar too */
+  .sheet-bar::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: calc(var(--pad) + var(--margin-w) - 2px);
+    width: 2px;
+    background: var(--margin-line);
+  }
+  .sheet-bar .letter-box {
+    justify-self: center;
+    width: 3.6rem;
+    height: 3.6rem;
+  }
+  .sheet-bar .letter { font-size: 2.3rem; }
+  html[lang="fa"] .sheet-bar .letter { font-size: 2.5rem; }
+  .sheet-bar-round {
+    padding-inline: 12px 8px;
+    font-family: var(--font-hand);
+    font-size: 1.15rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .sheet-bar .timer { gap: 6px; }
+  .sheet-bar .timer-pie { width: 38px; height: 38px; }
+  .sheet-bar #new-round { font-size: 0.85rem; padding: 0.5em 0.9em; }
+  html[lang="fa"] .sheet-bar #new-round { font-size: 1rem; }
+  /* Between rounds the clock gives its place to New round, and the other way round */
+  .sheet-area[data-phase="graded"] .sheet-bar .timer,
+  .sheet-area:not([data-phase="graded"]) .sheet-bar #new-round { display: none; }
+
+  /* ----- The table, laid out as a list ----- */
+  .sheet-scroll { overflow: visible; }
+  .sheet,
+  .sheet tbody,
+  .sheet tfoot,
+  .sheet tr { display: block; width: 100%; min-width: 0; }
+  .sheet thead { display: none; }
+
+  .sheet tr > :is(th, td) {
+    display: flex;
+    align-items: flex-end;
+    height: var(--line);
+    padding: 0 0 6px;
+    border: 0;
+    white-space: normal;
+    overflow: visible;
+  }
+  .sheet .col-letter {
+    position: static;
+    width: auto;
+    border: 0;
+    background: none;
+  }
+
+  /* One category per line: name | answer | red pen */
+  .sheet .row > td:not(.col-score) {
+    display: grid;
+    grid-template-columns: var(--margin-w) minmax(0, 1fr) auto var(--pts-w);
+    align-items: end;
+    position: relative;
+  }
+  .cat-label {
+    display: block;
+    grid-column: 1;
+    align-self: center;
+    padding-inline-end: 12px;            /* clear of the red margin line */
+    font-family: var(--font-head);
+    font-weight: 700;
+    font-size: 0.92rem;
+    line-height: 1.1;
+    overflow-wrap: anywhere;
+    hyphens: auto;
+  }
+  html[lang="fa"] .cat-label { font-weight: 400; font-size: 1rem; }
+
+  /* ----- The round being written ----- */
+  .row.current > th { display: none; }  /* its letter and number are in the sticky bar */
+  .sheet .row.current > td { padding: 0; }
+  .row.current input {
+    grid-column: 2 / -1;
+    height: var(--line);
+    padding: 12px 6px 0;                 /* text sits on the ruled line, not centred in the box */
+    font-size: 1.3rem;                   /* never under 16px: iOS would zoom in */
+    line-height: 1.2;
+    text-align: start;
+  }
+  .row.current td::after {
+    inset-inline: calc(var(--margin-w) + 4px) 4px;
+    bottom: 3px;
+  }
+  .row.current input:focus-visible { outline: none; }
+
+  /* ----- Graded rounds: collapsed cards, opened read-only ----- */
+  .sheet .row.past > th { padding: 0; }
+  .row.past .row-num,
+  .row.past .row-letter { display: none; }
+  .card-toggle {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    width: 100%;
+    height: 100%;
+    padding: 0 0 6px;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    color: var(--ink-blue);
+    text-align: start;
+  }
+  .card-toggle:focus-visible { outline-offset: -2px; }
+  /* A hand-drawn ▸ in the margin, turning ▾ when open */
+  .card-caret {
+    flex: none;
+    width: calc(var(--margin-w) - 12px);
+    align-self: center;
+    text-align: center;
+  }
+  .card-caret::before {
+    content: "";
+    display: inline-block;
+    border-block: 0.32em solid transparent;
+    border-inline-start: 0.5em solid var(--ink-blue);
+    transition: transform 0.15s ease-out;
+  }
+  .row.past.is-open .card-caret::before { transform: rotate(calc(90deg * var(--dir))); }
+  .card-title {
+    flex: 1;
+    min-width: 0;
+    padding-inline-start: 12px;
+    font-family: var(--font-hand);
+    font-size: 1.15rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .card-letter { font-size: 1.35rem; }
+  .card-score {
+    flex: none;
+    color: var(--ink-red);
+    font-family: var(--font-pen);
+    font-weight: 700;
+    font-size: 1.1rem;
+  }
+  html[lang="fa"] .card-score { font-weight: 400; }
+
+  .row.past:not(.is-open) > td { display: none; }
+  .row.past .answer {
+    grid-column: 2;
+    min-width: 0;
+    padding-inline: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* ✓ / – / ✗ and the points, at the end of the line */
+  .row.past .mark-check,
+  .row.past .mark-dash,
+  .row.past .mark-cross {
+    grid-column: 3;
+    grid-row: 1;
+    width: 1.1rem;
+    height: 1.1rem;
+    margin: 0 4px 4px;
+    align-self: end;
+  }
+  .mark-cross { display: block; }
+  .mark-cross path { stroke-width: 2.2; }
+  .pts {
+    display: block;
+    grid-column: 4;
+    grid-row: 1;
+    color: var(--ink-red);
+    font-family: var(--font-pen);
+    font-weight: 700;
+    font-size: 1.05rem;
+    line-height: 1.15;
+    text-align: end;
+    unicode-bidi: isolate;
+  }
+  html[lang="fa"] .pts { font-weight: 400; }
+  /* The slash crosses out the word only */
+  .row.past .mark-slash {
+    inset-block: 12px 8px;
+    inset-inline-start: calc(var(--margin-w) + 2px);
+    /* An absolutely positioned <svg> keeps its intrinsic size unless told */
+    width: calc(100% - var(--margin-w) - var(--pts-w) - 2.2rem);
+    height: calc(100% - 20px);
+  }
+
+  /* Round total at the bottom of the round's list */
+  .sheet .row.past > td.col-score {
+    display: grid;
+    grid-template-columns: var(--margin-w) minmax(0, 1fr);
+    align-items: end;
+    width: auto;
+    text-align: end;
+  }
+  .score-label {
+    display: block;
+    grid-column: 1 / 3;
+    grid-row: 1;
+    color: var(--ink-red);
+    font-family: var(--font-pen);
+    font-size: 1.05rem;
+    text-align: start;
+  }
+  .row.past .col-score .circled {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+    margin-inline-end: 8px;
+    margin-block-end: 2px;
+  }
+  /* A little air between an open card and the next one */
+  .row.past.is-open + .row { margin-block-start: var(--line); }
+
+  /* ----- Grand total, last line of the sheet ----- */
+  .sheet .total-row { display: flex; }
+  .sheet .total-row > .total-label { width: var(--margin-w); }
+  .total-row .total-spacer { flex: 1; }
+  .sheet .total-row > .col-score { width: auto; padding-inline-end: 8px; }
+
+  /* The submit tab and the stamp sit inside the paper on phones */
+  .graded-stamp { inset-inline-end: 6%; }
+}
+
 /* ---------- Reduced motion ---------- */
 
 @media (prefers-reduced-motion: reduce) {

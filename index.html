@@ -101,6 +101,12 @@
 
     <!-- ===== The ruled sheet: one row per round ===== -->
     <form class="sheet-area" id="sheet-form" novalidate autocomplete="off">
+      <!-- Phones only: sticky bar over the answer list. script.js moves the
+           letter box, the timer and the New round stamp in here (and back). -->
+      <div class="sheet-bar" id="sheet-bar">
+        <p class="sheet-bar-round" id="bar-round" aria-hidden="true"></p>
+      </div>
+
       <div class="sheet-scroll" id="sheet-scroll" tabindex="0" role="region" aria-label="Score sheet">
         <table class="sheet" id="sheet">
           <thead><tr id="head-row"></tr></thead>
