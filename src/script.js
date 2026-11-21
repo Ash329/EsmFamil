@@ -430,16 +430,18 @@ function makePastRow(entry, index, fresh) {
     td.style.setProperty('--i', i);            // staggers the pen strokes on a fresh row
     td.append(makeCatLabel(CATEGORIES[i]));
 
+    const kind = { valid: 'check', invalid: 'slash', empty: 'dash' }[cell.status];
     if (cell.status !== 'empty') {
       const answer = makeEl('span', 'answer');
       answer.append(makeEl('bdi', '', cell.text));  // isolate mixed-direction answers
+      // The one strike: inside the answer, so it is only as wide as the words
+      if (kind === 'slash') answer.append(penMark('slash', cell.d, cell.rot, true));
       td.append(answer);
       td.title = cell.text;
     }
-    const kind = { valid: 'check', invalid: 'slash', empty: 'dash' }[cell.status];
-    td.append(penMark(kind, cell.d, cell.rot, kind === 'slash'));
+    if (kind !== 'slash') td.append(penMark(kind, cell.d, cell.rot, false));
 
-    // Phones: a ✗ at the end of the row too (the slash alone crosses out the word)
+    // Phones: a ✗ at the end of the row (a mark, not a second strike)
     if (kind === 'slash') td.append(penMark('cross', cell.x, cell.rot, false));
 
     const status = { valid: s.valid, invalid: s.invalid(entry.letter), empty: s.empty }[cell.status];

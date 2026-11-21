@@ -556,9 +556,23 @@ html[dir="rtl"] .row.current td::after { transform-origin: right center; }
 /* ---------- Earlier rows: the same blue, faded; graded in red ---------- */
 
 .row.past td { position: relative; color: var(--ink-blue-faded); }
+/* The answer box shrinks to its words, so the strike inside it does too */
 .answer {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
   font-family: var(--font-hand);
   font-size: 1.2rem;
+  vertical-align: bottom;
+}
+/* Desktop: one ruled line per row, so a long answer ends in "…".
+   The top padding keeps tall marks (the dots of ش) inside the clip. */
+.answer bdi {
+  display: block;
+  padding-block-start: 0.35em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Red-pen marks: drawn with pathLength=1 so the stroke can "write" itself */
@@ -581,14 +595,16 @@ html[dir="rtl"] .row.current td::after { transform-origin: right center; }
   vertical-align: middle;   /* baseline alignment would push the row past one ruled line */
 }
 .mark-dash { margin-inline-start: 0.1em; }
-/* The slash crosses the whole word */
+/* The strike crosses the words only, with a little overhang at each end.
+   It is the answer's own child, so desktop and phones share this one rule. */
 .mark-slash {
   position: absolute;
-  inset-block: 9px 7px;
-  inset-inline: 0.35rem;
-  width: calc(100% - 0.7rem);
-  height: calc(100% - 16px);
+  inset-block: 0.55em 0.2em;
+  inset-inline-start: -0.25em;
+  width: calc(100% + 0.5em);
+  height: calc(100% - 0.75em);
   stroke-width: 2;
+  pointer-events: none;
 }
 html[dir="rtl"] .mark-slash { transform: scaleX(-1) rotate(calc(var(--rot, 0deg) * -1)); }
 
@@ -1149,13 +1165,34 @@ html[lang="fa"] .menu-item.is-primary { font-weight: 400; text-decoration: under
   html[lang="fa"] .card-score { font-weight: 400; }
 
   .row.past:not(.is-open) > td { display: none; }
+  /* The whole answer stays readable: it wraps onto another line rather than
+     being clipped, and the line grows to hold it */
+  .sheet .row.past > td:not(.col-score) {
+    height: auto;
+    min-height: var(--line);
+  }
   .row.past .answer {
     grid-column: 2;
+    grid-row: 1;
+    justify-self: start;                 /* shrink to the words, not the column */
     min-width: 0;
-    padding-inline: 6px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    margin-inline-start: 6px;
+    /* Each line of the answer is one ruled line (so a wrapped answer is two
+       whole lines and the list stays on the ruling), with room above for the
+       dots of ش. The -6px undoes the cell's bottom padding. */
+    line-height: var(--line);
+    margin-block-end: -6px;
+  }
+  /* From the middle of the first line to the middle of the last */
+  .row.past .mark-slash {
+    inset-block-start: calc(var(--line) / 2 - 0.1em);
+    height: calc(100% - var(--line) + 0.6em);
+  }
+  .row.past .answer bdi {
+    padding: 0;
+    white-space: normal;
+    overflow: visible;
+    overflow-wrap: anywhere;
   }
   /* ✓ / – / ✗ and the points, at the end of the line */
   .row.past .mark-check,
@@ -1183,14 +1220,6 @@ html[lang="fa"] .menu-item.is-primary { font-weight: 400; text-decoration: under
     unicode-bidi: isolate;
   }
   html[lang="fa"] .pts { font-weight: 400; }
-  /* The slash crosses out the word only */
-  .row.past .mark-slash {
-    inset-block: 12px 8px;
-    inset-inline-start: calc(var(--margin-w) + 2px);
-    /* An absolutely positioned <svg> keeps its intrinsic size unless told */
-    width: calc(100% - var(--margin-w) - var(--pts-w) - 2.2rem);
-    height: calc(100% - 20px);
-  }
 
   /* Round total at the bottom of the round's list */
   .sheet .row.past > td.col-score {
