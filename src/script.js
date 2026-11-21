@@ -6,9 +6,11 @@
  */
 'use strict';
 
-/* =====================================================================
-   1. Configuration — edit these to change the game
-   ===================================================================== */
+import {
+  createStore, browserLang, createProfile, renameProfile,
+  createNameScreen, createProfileMenu, PROFILE_STRINGS, STORAGE_KEY,
+} from './profile/index.js';
+
 
 /** Categories in display order (the sheet's columns). Add, remove or reorder here. */
 const CATEGORIES = [
@@ -25,6 +27,10 @@ const CATEGORIES = [
 ];
 
 const POINTS_PER_VALID = 10;
+const POINTS_PER_UNIQUE = 10
+const POINTS_PER_DUPLICATE = 5 
+
+
 const DEFAULT_TIMER_SECONDS = 60;
 const TIMER_MIN_SECONDS = 10;
 const TIMER_MAX_SECONDS = 600;
@@ -103,8 +109,14 @@ const STRINGS = {
    2. State
    ===================================================================== */
 
+/** The guest profile and saved settings (localStorage "esmfamil.guest.v1"). */
+const store = createStore();
+const saved = store.load();
+
 const state = {
-  lang: 'fa',         // Farsi is the default language
+  lang: saved.settings.lang ?? browserLang(), // saved choice, else the browser's language
+  profile: saved.profile, // { id, name, avatar, createdAt } or null → name screen
+  playing: false,     // a round has been started for this player
   phase: 'picking',   // 'picking' (letters running) | 'playing' (row editable) | 'graded'
   letter: '',         // this round's letter, once landed
   shown: '',          // letter currently in the box while running
@@ -132,6 +144,9 @@ const el = {
   langGroup: $('lang-group'),
   langButtons: document.querySelectorAll('.lang-toggle button'),
   letterBox: $('letter-box'),
+  nameScreen: $('name-screen'),
+  playerLine: $('player-line'),
+  roundBar: $('round-bar'),
   letterBoxPath: $('letter-box-path'),
   letter: $('letter'),
   roundLabel: $('round-label'),
@@ -181,7 +196,7 @@ function fmtTime(totalSeconds) {
  *  Arabic tatweel (kashida). */
 const LEADING_JUNK = /^[\s​-‏‪-‮⁦-⁩﻿ـ]+/;
 
-/** Arabic-keyboard letters that Persian treats as the same letter. */
+
 const PERSIAN_VARIANTS = {
   'ي': 'ی', // Arabic yeh
   'ى': 'ی', // alef maksura
@@ -574,7 +589,8 @@ function land(letter) {
 
   renderControls();
   announce(t().announceLetter(letter));
-  state.inputs[0].focus();
+  // Don't pull the pen away from someone typing in the player menu
+  if (!el.playerLine.contains(document.activeElement)) state.inputs[0].focus();
   startTimer();
 }
 
@@ -622,6 +638,7 @@ function stampRow(row) {
 function setLanguage(lang) {
   if (lang === state.lang || !STRINGS[lang]) return;
   state.lang = lang;
+  store.saveSettings({ lang });
   state.letter = '';
   state.shown = '';
   renderLanguage();
@@ -629,7 +646,8 @@ function setLanguage(lang) {
   if (state.currentRow) { state.currentRow.remove(); state.currentRow = null; }
   renderRows();
   renderTotal();
-  startPicking();
+  renderPlayer();
+  if (state.playing) startPicking(); // on the name screen, wait for a name
 }
 
 /* =====================================================================
@@ -661,7 +679,104 @@ el.timerEnabled.addEventListener('change', startTimer);
 el.timerSeconds.addEventListener('change', startTimer);
 
 /* =====================================================================
-   10. Init
+   10. The player (guest profile from src/profile/)
+   ===================================================================== */
+
+const nameScreen = createNameScreen(el.nameScreen, {
+  onSubmit(name, id) {
+    setProfile(createProfile(name, { id }));
+    startGame();
+  },
+});
+
+const profileMenu = createProfileMenu(el.playerLine, {
+  onRename(name) {
+    setProfile(renameProfile(state.profile, name)); // same id, scores untouched
+    announce(PROFILE_STRINGS[state.lang].renamed(name));
+  },
+  onLeave() {
+    store.clearProfile();
+    state.profile = null;
+    resetGame();
+    showNameScreen();
+  },
+});
+
+function setProfile(profile) {
+  state.profile = profile;
+  store.saveProfile(profile);
+  renderPlayer();
+}
+
+function renderPlayer() {
+  profileMenu.render(state.profile, state.lang);
+  nameScreen.setLang(state.lang);
+}
+
+/** No player yet: only the name line is on the page. */
+function showNameScreen() {
+  el.roundBar.hidden = true;
+  el.form.hidden = true;
+  profileMenu.hide();
+  nameScreen.show(state.lang);
+}
+
+/** A player is on the sheet: name at the top, letters start running. */
+function startGame() {
+  nameScreen.hide();
+  renderPlayer();
+  profileMenu.show();
+  el.roundBar.hidden = false;
+  el.form.hidden = false;
+  state.playing = true;
+  startPicking();
+}
+
+/** A fresh, blank sheet for the next player. */
+function resetGame() {
+  stopTimer();
+  clearInterval(state.flickerId);
+  clearTimeout(state.pickTimeoutId);
+  state.pickId++;              // cancels a landing in progress
+  state.playing = false;
+  state.phase = 'picking';
+  state.letter = '';
+  state.shown = '';
+  state.timedOut = false;
+  state.history = [];
+  if (state.currentRow) state.currentRow.remove();
+  state.currentRow = null;
+  state.currentLetterEl = null;
+  state.inputs = [];
+  el.letter.textContent = '?';
+  el.letterBox.classList.remove('is-running', 'is-landed');
+  el.gradedStamp.classList.remove('is-stamping');
+  renderRows();
+  renderTotal();
+}
+
+// Another tab renamed, left or joined: follow it. (Same browser = same guest.)
+window.addEventListener('storage', e => {
+  if (e.key !== STORAGE_KEY && e.key !== null) return;
+  const next = store.load().profile;
+  const current = state.profile;
+  if (!next) {
+    if (current) { state.profile = null; resetGame(); showNameScreen(); }
+  } else if (!current) {
+    state.profile = next;
+    startGame();
+  } else if (next.id === current.id) {
+    state.profile = next;
+    renderPlayer();
+  } else {
+    state.profile = next;      // a different guest took over in the other tab
+    resetGame();
+    startGame();
+  }
+});
+
+/* =====================================================================
+   11. Init
    ===================================================================== */
 
 function init() {
@@ -674,7 +789,8 @@ function init() {
   renderHead();
   renderRows();
   renderTotal();
-  startPicking(); // letters start running; no focus grab on page load
+  if (state.profile) startGame(); // letters start running; no focus grab on page load
+  else showNameScreen();
 }
 
 init();

@@ -5,14 +5,16 @@
     "dev": "vite",
     "start": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "Esm-o-Famil (اسم فامیل) — the Persian word game, in English and Farsi",
   "devDependencies": {
-    "vite": "^8.3.5"
+    "vite": "^8.3.5",
+    "vitest": "^5.1.1"
   },
   "private": true,
   "type": "module"
